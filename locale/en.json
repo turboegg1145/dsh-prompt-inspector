@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Prompt Inspector",
+    "description": "Inspect every system-prompt section, context block and tool schema injected into the current conversation, with token estimates, then mute sections or hide tools per session."
+  }
+}

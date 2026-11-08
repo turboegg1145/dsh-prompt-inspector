@@ -1,0 +1,64 @@
+{
+  "name": "dsh-prompt-inspector",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Prompt Inspector for DeepSeek Harness — see and trim every system-prompt section, context block and tool schema injected before a conversation, with per-item token estimates. · DSH 提示词体检：逐条查看并裁剪对话前注入的系统提示词与工具，附 token 估算。",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "prompt",
+    "token",
+    "context",
+    "system-prompt",
+    "inspector"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/turboegg1145/dsh-prompt-inspector.git"
+  },
+  "homepage": "https://github.com/turboegg1145/dsh-prompt-inspector#readme",
+  "bugs": {
+    "url": "https://github.com/turboegg1145/dsh-prompt-inspector/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    },
+    "install": {
+      "preferred": "tarball",
+      "tarball": "https://github.com/turboegg1145/dsh-prompt-inspector/archive/refs/heads/main.tar.gz",
+      "zip": "https://github.com/turboegg1145/dsh-prompt-inspector/archive/refs/heads/main.zip",
+      "git": "https://github.com/turboegg1145/dsh-prompt-inspector.git"
+    }
+  }
+}

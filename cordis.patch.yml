@@ -1,0 +1,4 @@
+- insert:
+    - id: prompt-inspector
+      name: 'dsh-prompt-inspector'
+      inject: [systemPrompt, tools, agents, webServer]
