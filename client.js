@@ -134,10 +134,12 @@ window.__ModuleLoader__.load({
     }
 
     async function api(path, options) {
+      const opts = options || {}
+      const headers = Object.assign({ 'x-prompt-inspector': '1' }, opts.headers || {})
       const response = await fetch('/prompt-inspector' + path, Object.assign({
         credentials: 'same-origin',
         cache: 'no-store',
-      }, options || {}))
+      }, opts, { headers }))
       const raw = await response.text()
       let body = null
       try {

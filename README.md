@@ -49,6 +49,7 @@ plugin_manager install_bundle  target=/绝对路径/dsh-prompt-inspector
 ## 实现要点
 
 - Host 侧注册 `webServer` 前缀路由 `/prompt-inspector`：`GET /ping`、`GET /snapshot?session=`、`POST /apply`、`POST /reset`。
+- 这条路由挂在裸 webserver 上，不走 harness `/api` 的 Host/Origin 围栏，所以四个端点共用一道自己的围栏：`Host` 必须是本机回环且端口等于监听端口（挡 DNS rebinding），`Sec-Fetch-Site` 只接受 `same-origin`/`none`，带 `Origin` 时必须与 `Host` 同源，并要求 `x-prompt-inspector: 1` 请求头（挡 `no-cors` 跨站 POST）。手工 curl 时记得带上：`-H 'x-prompt-inspector: 1'`。
 - `snapshot` 用 `ctx.systemPrompt.assemble({ scope: agent })` 取合并后的真实装配结果（agent 对象本身就是 ScopeKey），再按 `layers.merge()` 里的真实 `order` 建立同名覆盖段。
 - token 估算沿用 harness 的启发式：`ceil(字符数 / 4)`。
 - 编辑走 `agent.ctx.systemPrompt.section()`（同名覆盖，不改 `system-prompt/assemble` 瀑布），隐藏走 `agent.ctx.tools.restrict({ deny })`；两者都随 agent 生命周期自动回收。

@@ -116,6 +116,82 @@ function readBody(req) {
   })
 }
 
+const GUARD_HEADER = 'x-prompt-inspector'
+
+function forbidden(message) {
+  const err = new Error(message)
+  err.status = 403
+  return err
+}
+
+function parseHostHeader(value) {
+  try {
+    const url = new URL(`http://${value}`)
+    return url.username === '' && url.password === '' ? url : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function isLoopbackName(hostname) {
+  if (hostname === 'localhost' || hostname === '[::1]') return true
+  const parts = hostname.split('.')
+  return parts.length === 4 && parts[0] === '127' && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+}
+
+/**
+ * Confused-deputy fence for the whole `/prompt-inspector` surface.
+ *
+ * This route is mounted straight on the webserver, so it does not sit behind the
+ * harness's own `/api` Host/Origin fence. Two browser paths stay open without one:
+ *
+ *   - DNS rebinding: a page on the attacker's domain is re-pointed at 127.0.0.1,
+ *     so the browser treats this listener as same-origin and reads `/ping` (the
+ *     live agent ids) and `/snapshot` (the whole prompt). `Host` is the one header
+ *     rebinding cannot forge, so pinning it to the loopback listener is the fence.
+ *   - Cross-site CSRF: a page POSTs here with `mode: 'no-cors'` and a `text/plain`
+ *     body. No preflight is sent, the handler ignores Content-Type, and the edits
+ *     land. `Origin`/`Sec-Fetch-Site` plus a required custom header (which forces a
+ *     preflight the server never approves) close that path.
+ *
+ * Non-browser clients (curl, smoke tests) pass by naming the loopback Host and
+ * sending the header; no identity is established here.
+ */
+function assertTrusted(ctx, req) {
+  const host = req.headers.host
+  if (typeof host !== 'string' || host === '') throw forbidden('missing host header')
+  const hostUrl = parseHostHeader(host)
+  if (hostUrl === undefined) throw forbidden('untrusted host')
+  if (!isLoopbackName(hostUrl.hostname)) throw forbidden('untrusted host')
+
+  let own
+  try {
+    own = new URL(ctx.webServer.getOrigin())
+  } catch {
+    own = undefined // not listening yet; the loopback check above still holds
+  }
+  if (own !== undefined && hostUrl.port !== own.port) throw forbidden('untrusted host')
+
+  const site = req.headers['sec-fetch-site']
+  if (typeof site === 'string' && site !== 'same-origin' && site !== 'none') {
+    throw forbidden('cross-site request refused')
+  }
+
+  const origin = req.headers.origin
+  if (typeof origin === 'string') {
+    let originUrl
+    try {
+      originUrl = new URL(origin)
+    } catch {
+      throw forbidden('invalid origin')
+    }
+    if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') throw forbidden('invalid origin')
+    if (originUrl.host !== hostUrl.host) throw forbidden('cross-origin request refused')
+  }
+
+  if (req.headers[GUARD_HEADER] !== '1') throw forbidden(`missing ${GUARD_HEADER} header`)
+}
+
 function missingAgent(ctx, sessionId) {
   const err = new Error(`no live agent named ${JSON.stringify(sessionId)}`)
   err.status = 404
@@ -314,6 +390,7 @@ async function handle(ctx, req, res) {
   const url = new URL(req.url || '/', 'http://localhost')
   const path = url.pathname.slice(ROUTE.length) || '/'
   try {
+    assertTrusted(ctx, req)
     if (req.method === 'GET' && (path === '/' || path === '/snapshot')) {
       const sessionId = url.searchParams.get('session')
       if (!sessionId) {
