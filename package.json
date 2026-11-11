@@ -1,6 +1,6 @@
 {
   "name": "dsh-prompt-inspector",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Prompt Inspector for DeepSeek Harness — see and trim every system-prompt section, context block and tool schema injected before a conversation, with per-item token estimates. · DSH 提示词体检：逐条查看并裁剪对话前注入的系统提示词与工具，附 token 估算。",
   "main": "index.js",
